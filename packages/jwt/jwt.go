@@ -27,3 +27,14 @@ func GetSignedTokenFromData(data models.RequiredDataToClaims) string{
 	}
 	return signedToken
 }
+
+func DecodeJwt(tokenString string) (bool,interface{}){
+	claims := jwt.MapClaims{}
+	_, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+    	return []byte("TemporaryJustForNow"), nil
+	})
+	if err != nil{
+		return false, nil
+	}
+	return true,claims
+}
