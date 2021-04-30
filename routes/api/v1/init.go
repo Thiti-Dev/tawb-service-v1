@@ -1,18 +1,18 @@
 package routes
 
 import (
-	"net/http"
-
+	user_controller "github.com/Thiti-Dev/tawb-service-v1/controller/user"
 	"github.com/gin-gonic/gin"
 )
 
 
 func Initialize_Route(router *gin.Engine){
-	v1 := router.Group("/v1")
+	api := router.Group("/api")
+	v1 := api.Group("/v1")
+	user := v1.Group("/user")
 	{
-		v1.GET("/test",func(c *gin.Context){
-			c.JSON(http.StatusOK, gin.H{"status": "success"})
-
-		})
+		user.POST("/register", func(c *gin.Context) {
+			user_controller.RegisterUser(c)
+		}) // we wrapped func in func again because GIN support only func(*gin.Context) without any return types
 	}
 }
