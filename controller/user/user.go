@@ -110,3 +110,9 @@ func SignInWithCredential(c *gin.Context) error {
 
 	return nil
 }
+
+func GetUserCredential(c *gin.Context) error {
+	_, userData := helpers.GetUserDataFromContext(c)
+	c.JSON(http.StatusOK,gin.H{"success":true,"data":userData})
+	return nil
+}

@@ -1,8 +1,6 @@
 package routes
 
 import (
-	"net/http"
-
 	user_controller "github.com/Thiti-Dev/tawb-service-v1/controller/user"
 	"github.com/Thiti-Dev/tawb-service-v1/middlewares/protected_route"
 	"github.com/gin-gonic/gin"
@@ -21,7 +19,7 @@ func Initialize_Route(router *gin.Engine){
 			user_controller.SignInWithCredential(c)
 		})
 		user.GET("/authcheck", protected_route.ProtectedRoute(), func(c *gin.Context){
-			c.JSON(http.StatusOK,gin.H{"success":true})
+			user_controller.GetUserCredential(c)
 		})
 	}
 }
