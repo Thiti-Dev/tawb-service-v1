@@ -9,6 +9,7 @@ import (
 	"github.com/Thiti-Dev/tawb-service-v1/database"
 	"github.com/Thiti-Dev/tawb-service-v1/database/collections"
 	"github.com/Thiti-Dev/tawb-service-v1/helpers"
+	"github.com/Thiti-Dev/tawb-service-v1/packages/encryptor"
 	"github.com/Thiti-Dev/tawb-service-v1/validator"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -48,11 +49,14 @@ func RegisterUser(c *gin.Context) error {
 		}
 		// ─────────────────────────────────────────────────────────────────
 
+		//hashing
+		hashPwd, _ := encryptor.HashPassword(registerBody.Password)
+		// ─────────────────────────────────────────────────────────────────
 
 		user := collections.User{}
 		user.ID = primitive.NewObjectID()
 		user.Username = registerBody.Username
-		user.Password = registerBody.Password
+		user.Password = hashPwd
 		user.CreatedAt = time.Now()
 		user.UpdatedAt = time.Now()
 		_, err := col.InsertOne(ctx,user)
