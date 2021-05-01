@@ -10,6 +10,8 @@ package validator
 import (
 	"log"
 
+	"github.com/Thiti-Dev/tawb-service-v1/helpers"
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	validator_core "github.com/go-playground/validator/v10"
@@ -72,4 +74,13 @@ func ValidateStructAndGetErrorMsg(data interface{}) (bool,dynamicStruct){
 	}else{
 		return true , nil
 	}
+}
+
+func ValidateStructAndSendResponseMsgIfThereIsError(c *gin.Context,any_struct interface{}) (bool){
+	isValid, errorsData := ValidateStructAndGetErrorMsg(any_struct)
+	if !isValid{
+		helpers.ResponseMsg(c, 400, "Validation Errors", errorsData) 
+		return true
+	}
+	return false
 }

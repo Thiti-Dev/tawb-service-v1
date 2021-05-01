@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -9,21 +10,18 @@ import (
 	"github.com/Thiti-Dev/tawb-service-v1/database"
 	"github.com/Thiti-Dev/tawb-service-v1/database/collections"
 	"github.com/Thiti-Dev/tawb-service-v1/helpers"
+	models "github.com/Thiti-Dev/tawb-service-v1/models/jwt"
+	"github.com/Thiti-Dev/tawb-service-v1/models/user/user_request_bodies"
 	"github.com/Thiti-Dev/tawb-service-v1/packages/encryptor"
+	"github.com/Thiti-Dev/tawb-service-v1/packages/jwt"
 	"github.com/Thiti-Dev/tawb-service-v1/validator"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-//NOTE We removed the binding out and use validate only instead for validation phase
-type RegisterUserBody struct {
-	Username string `json:"username" xml:"username" validate:"required"`
-	Password string `json:"password" xml:"password" validate:"required"`
-}
-
 func RegisterUser(c *gin.Context) error {
-	registerBody := RegisterUserBody{}
+	registerBody := user_request_bodies.RegisterUserBody{}
 	if errA := c.ShouldBind(&registerBody); errA != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "failed","message":"invalid request body not a JSON format"})
 	}else{
@@ -68,5 +66,47 @@ func RegisterUser(c *gin.Context) error {
 		//objectID := result.InsertedID.(primitive.ObjectID)
 		return helpers.ResponseMsg(c,200,"",user)
 	}
+	return nil
+}
+
+func SignInWithCredential(c *gin.Context) error {
+	credential := new(user_request_bodies.LoginUserBody)
+	if err := c.ShouldBind(credential); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "failed","message":"invalid request body not a JSON format"})
+		return nil
+	}
+	if validator.ValidateStructAndSendResponseMsgIfThereIsError(c,credential){
+		return errors.New("Validation errors")
+	}
+
+	// ─── DB & CTX DECLARATION ─────────────────────────────────────────────
+	ctx := context.Background()
+	col := database.GetDatabaseInstance().Collection("User")
+	// ────────────────────────────────────────────────────────────────────────────────
+
+	// check if username is already existed or not
+	q := bson.M{"username": credential.Username}
+	result := col.FindOne(ctx,q)
+	if result.Err() != nil{
+		return helpers.ResponseMsg(c, 400, "email or password is incorrect", nil) 
+	}
+	// ─────────────────────────────────────────────────────────────────
+
+	userData := new(collections.User)
+	result.Decode(userData)
+
+	// checking if password are the same between plain&crypted
+	if !encryptor.CheckPasswordHash(credential.Password,userData.Password) {
+		return helpers.ResponseMsg(c, 400, "email or password is incorrect", nil) // doesnt give any hint xD
+	}
+	// ─── SIGN THE TOKEN FOR USER ────────────────────────────────────────────────────
+	signedToken := jwt.GetSignedTokenFromData(models.RequiredDataToClaims{
+		Username: userData.Username,
+		ID: userData.ID,
+	})
+	// ────────────────────────────────────────────────────────────────────────────────
+
+	c.JSON(200,gin.H{"status":"success","accessToken":signedToken})
+
 	return nil
 }
